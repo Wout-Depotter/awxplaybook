@@ -1,0 +1,7 @@
+- name: startSAP
+  hosts: all
+  tasks:
+    - debug: var=InstanceNumber
+
+    - name: Stop SAP services
+      shell: sudo /usr/sap/hostctrl/exe/sapcontrol -nr TSH -function StartSystem   

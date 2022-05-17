@@ -1,0 +1,41 @@
+- name: zypperUpdates
+  hosts: all 
+  tasks:
+    
+    - name: Apply security patches
+      shell: sudo zypper lp --category security | awk '$5=="security" { print "sudo zypper -n in -t patch "$3 " =1"}' | head -n -1 | sh +x
+
+    - name: Check if reboot is needed
+      register: linux_reboot_required_file
+      stat: path=/boot/do_purge_kernels get_md5=no
+
+    - name: Genereate the list of the upgraded packages on the server
+      become: true
+      shell: sudo zypper lp --category security | awk '$5=="security" { print "sudo zypper -n in -t patch "$3 " =1"}' | head -n -1  >> /tmp/packages-set.txt
+      args:
+        warn: false
+
+    - name: Send file to other servers
+      shell: sudo scp -r /tmp/packages-set.txt rootadmin@10.251.255.9:/tmp/packages-set.txt
+
+    - name: Send file to quality server
+	shell: sudo scp -r /tmp/packages-set.txt rootadmin@10.251.255.11:/tmp/packages-set.txt  
+
+    - name: Check that the reboot-required exists
+      stat:
+        path: /var/run/reboot-required
+      register: p
+
+    - debug: msg="Reboot required"
+      when: p.stat.exists
+
+    - name: Rebooting host
+      shell: 'sudo shutdown -r +1 "Reboot triggered by Ansible"'
+      when: p.stat.exists
+
+    - wait_for_connection:
+        delay: 90
+        timeout: 10000 
+        
+       
+

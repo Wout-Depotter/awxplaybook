@@ -1,0 +1,22 @@
+- name: zypperPROD
+  hosts: all
+  tasks:
+
+    - name: Apply the same set of security updates
+      shell: sudo cat /tmp/packages-set.txt | sh +x
+
+    - name: Check that the reboot-required exists
+      stat:
+        path: /var/run/reboot-required
+      register: p
+
+    - debug: msg="Reboot required"
+      when: p.stat.exists
+
+    - name: Rebooting host
+      shell: 'sudo shutdown -r +1 "Reboot triggered by Ansible"'
+      when: p.stat.exists
+
+    - wait_for_connection:
+        delay: 90
+        timeout: 10000	
